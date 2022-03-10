@@ -1,6 +1,9 @@
+import json
 from logging import Handler, LogRecord
 
 from qiskit.providers.ibmq.runtime import UserMessenger
+
+from runtime_helpers.json_logs import LogRecordEncoder
 
 
 class UserMessengerHandler(Handler):
@@ -10,5 +13,4 @@ class UserMessengerHandler(Handler):
         self._user_messenger = user_messenger
 
     def emit(self, record: LogRecord) -> None:
-        msg = self.format(record)
-        self._user_messenger.publish(msg)
+        self._user_messenger.publish(json.dumps(record, cls=LogRecordEncoder))

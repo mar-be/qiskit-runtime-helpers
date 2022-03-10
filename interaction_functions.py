@@ -14,8 +14,17 @@ stickytape._generate_module_writers = _generate_module_writers
 logger = logging.getLogger(__name__)
 
 
-def _interim_result_callback(job_id, interim_result):
-    logger.info(f"{job_id}: {interim_result}")
+def _create_callback(callback=None):
+    def _callback_with_log_filter(job_id, interim_result):
+        if isinstance(interim_result, dict) and '__log_record__' in interim_result:
+            interim_result.pop('__log_record__')
+            interim_result['name'] += f' - {job_id}'
+            log_record = logging.makeLogRecord(interim_result)
+            logger.handle(log_record)
+        elif callback is not None:
+            callback(job_id, interim_result)
+
+    return _callback_with_log_filter
 
 
 def local_test(run_time_program, inputs):
@@ -46,20 +55,20 @@ def upload_program(provider, data=None, data_file=None, meta_data=None, meta_dat
     return program_id
 
 
-def call_program(provider, program_id, options, inputs):
+def call_program(provider, program_id, options, inputs, callback=None):
     job = provider.runtime.run(program_id=program_id,
                                options=options,
                                inputs=inputs,
-                               callback=_interim_result_callback)
+                               callback=_create_callback(callback))
     logger.info(f"job ID: {job.job_id()}")
     return job.result()
 
 
-def start_program(provider, program_id, options, inputs):
+def start_program(provider, program_id, options, inputs, callback=None):
     job = provider.runtime.run(program_id=program_id,
                                options=options,
                                inputs=inputs,
-                               callback=_interim_result_callback)
+                               callback=_create_callback(callback))
     logger.info(f"job ID: {job.job_id()}")
     return job
 
